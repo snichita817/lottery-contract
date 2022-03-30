@@ -2,11 +2,14 @@
 pragma solidity ^0.8.0;
 
 contract Tombola{
+    bool started = false;
     address private admin;
     address[] public players;
     string public nume;
     uint data;
     uint randomCounter;
+    uint numberOfPlayers;
+    
     function setNume(string memory _nume) public {
         nume = _nume;
     } 
@@ -14,9 +17,20 @@ contract Tombola{
     function getNume() public view returns(string memory) {
         return nume;
     }
-    //admin only
+    
+    function getStarted() public view returns(bool) {
+        return started;
+    }
+
+    function getNumber() public view returns(uint) {
+        return numberOfPlayers;
+    }
+    
     function startTombola() public {
+        require(started == false, "The lottery is already started.");
         data = block.timestamp;
+        started = true;
+        numberOfPlayers = 0;
     }
 
     constructor() {
@@ -24,8 +38,10 @@ contract Tombola{
     }
 
     function enter() public payable{
-        require(msg.value ==  0.1 ether, "Incorrect value");
+        require(started == true, "The lottery is not opened.");
+        require(msg.value ==  0.1 ether, "Incorrect value !");
         players.push(msg.sender);
+        numberOfPlayers +=1;
     }
 
     function random() private returns(uint){
@@ -34,22 +50,26 @@ contract Tombola{
     }
 
     function finalizareTombola() public adminOnly{
+        require(started == true, "No lottery is currently ongoing.");
         uint locul1 = random() % players.length;
-        payable (players[locul1]).transfer(address(this).balance*7/10);//70%
+        payable (players[locul1]).transfer(address(this).balance*70/100);
 
         uint locul2 = random() % players.length;
 
-       //
         while(locul1 == locul2) {
             locul2 = random() % players.length;
         }
-        payable (players[locul2]).transfer(address(this).balance * 5/20); // 25%
+        payable (players[locul2]).transfer(address(this).balance * 83333/100000); 
 
         players = new address[](0);
+        started = false;
+        
     }
 
     function withdrawFunds() external payable{
-        payable (admin).transfer(address(this).balance); // restul de 5%
+        require(started == false, "Cannot withdraw, the lottery is curently ongoing.");
+        payable (admin).transfer(address(this).balance);
+         // restul de 5%
     }
 
     modifier adminOnly(){
